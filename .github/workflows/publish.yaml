@@ -1,0 +1,31 @@
+name: Publish Helm Charts to GHCR
+
+on:
+  push:
+    tags:
+      - v*
+
+permissions:
+  packages: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Set up Helm
+        uses: azure/setup-helm@v3
+        with:
+          version: v3.12.1
+
+      - name: Package chart
+        run: helm package charts/supabase -d dist/
+
+      - name: Publish to GHCR
+        run: |
+          echo ${{ secrets.GITHUB_TOKEN }} | helm registry login ghcr.io -u ${{ github.actor }} --password-stdin
+          helm push dist/* oci://ghcr.io/bogay/charts
